@@ -1,3 +1,4 @@
+// 定义cdk，每个表是什么资源，什么时候丢弃，初始化数据库内的数据，创建网关，定义API及其名称
 import * as cdk from "aws-cdk-lib";
 import * as lambdanode from "aws-cdk-lib/aws-lambda-nodejs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -9,11 +10,12 @@ import { generateBatch } from "../shared/util";
 import { movies, movieCasts } from "../seed/movies";
 import * as apig from "aws-cdk-lib/aws-apigateway";
 
+//定义cdk类来创建api
 export class RestAPIStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // Tables 
+    // Tables 创建cdk中使用的表格
     const moviesTable = new dynamodb.Table(this, "MoviesTable", {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       partitionKey: { name: "id", type: dynamodb.AttributeType.NUMBER },
@@ -34,6 +36,22 @@ export class RestAPIStack extends cdk.Stack {
       sortKey: { name: "roleName", type: dynamodb.AttributeType.STRING },
     });
 
+    // 我新加的MovieReviews表
+    const movieReviewsTable = new dynamodb.Table(this, 'MovieReviewsTable', {
+      partitionKey: { name: 'MovieId', type: dynamodb.AttributeType.NUMBER },
+      sortKey: { name: 'ReviewDate', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      tableName: 'MovieReviews',
+    });
+    //表的二级属性：这里是按ReviewDate查询
+    movieReviewsTable.addGlobalSecondaryIndex({
+      indexName: 'ReviewDateIndex',
+      partitionKey: { name: 'ReviewDate', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL, // 索引的属性
+    });
+
+
     // Functions 
     const getMovieByIdFn = new lambdanode.NodejsFunction(
       this,
@@ -51,6 +69,7 @@ export class RestAPIStack extends cdk.Stack {
       }
     );
 
+    // 具体的getmoviesfunction
     const getAllMoviesFn = new lambdanode.NodejsFunction(
       this,
       "GetAllMoviesFn",
@@ -124,6 +143,19 @@ export class RestAPIStack extends cdk.Stack {
       }
     );
 
+    //API作业1方法
+    const addMovieReviewFn = new lambdanode.NodejsFunction(this, "AddMovieReviewFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_16_X, 
+      entry: `${__dirname}/../lambdas/addMovieReview.ts`, 
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      environment: {
+        TABLE_NAME: movieReviewsTable.tableName, // 从CDK环境变量中引用评论表名称
+        REGION: "eu-west-1",
+      },
+    });
+
     // Permissions 
     moviesTable.grantReadData(getMovieByIdFn)
     moviesTable.grantReadData(getAllMoviesFn)
@@ -131,8 +163,9 @@ export class RestAPIStack extends cdk.Stack {
     moviesTable.grantReadWriteData(deleteMovieFn)
     movieCastsTable.grantReadData(getMovieCastMembersFn);
     movieCastsTable.grantReadData(getMovieByIdFn)
+    movieReviewsTable.grantWriteData(addMovieReviewFn);
 
-    // REST API 
+    // REST API 添加API
     const api = new apig.RestApi(this, "RestAPI", {
       description: "demo api",
       deployOptions: {
@@ -146,12 +179,14 @@ export class RestAPIStack extends cdk.Stack {
       },
     });
 
+    // /movies
     const moviesEndpoint = api.root.addResource("movies");
     moviesEndpoint.addMethod(
       "GET",
       new apig.LambdaIntegration(getAllMoviesFn, { proxy: true })
     );
 
+    // /movies/{movieId}
     const movieEndpoint = moviesEndpoint.addResource("{movieId}");
     movieEndpoint.addMethod(
       "GET",
@@ -168,11 +203,21 @@ export class RestAPIStack extends cdk.Stack {
       new apig.LambdaIntegration(deleteMovieFn, { proxy: true })
     )
 
+    // /movies/cast
     const movieCastEndpoint = moviesEndpoint.addResource("cast");
     movieCastEndpoint.addMethod(
       "GET",
       new apig.LambdaIntegration(getMovieCastMembersFn, { proxy: true })
     );
+
+
+    // /movies/review
+    const reviewsEndpoint = moviesEndpoint.addResource("reviews");
+    reviewsEndpoint.addMethod(
+      "POST",
+      new apig.LambdaIntegration(addMovieReviewFn, { proxy: true })
+    );
+
 
   }
 }

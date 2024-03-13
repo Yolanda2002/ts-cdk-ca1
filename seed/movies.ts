@@ -1,4 +1,6 @@
+// 数据库内的测试代码
 import {Movie, MovieCast} from '../shared/types'
+import { MovieReview } from '../shared/types';
 
 export const movies : Movie[] = [
   {
@@ -348,4 +350,80 @@ export const movieCasts: MovieCast[] = [
     roleName: "Male Character 1",
     roleDescription: "description of character 3",
   },
+];
+
+
+
+//Data for MovieReview
+export const movieReviews: MovieReview[] = [
+  {
+    MovieId: 1234,
+    ReviewerName: "Yolanda Yang",
+    ReviewDate: "2024-3-13",
+    Content: "Great movie, enjoyed a lot!",
+    Rating: 5
+  },
+  {
+    MovieId: 2345,
+    ReviewerName: "Alice Wang",
+    ReviewDate: "2024-3-14",
+    Content: "Good.",
+    Rating: 3
+  },
+  {
+    MovieId: 6789,
+    ReviewerName: "Ben Authur",
+    ReviewDate: "2024-3-15",
+    Content: "Awful.",
+    Rating: 1
+  },
+  {
+    MovieId: 4567,
+    ReviewerName: "Jane Austin",
+    ReviewDate: "2024-3-16",
+    Content: "The direction was flawless.",
+    Rating: 5
+  },
+  {
+    MovieId:7886,
+    ReviewerName: "Justin Bieber",
+    ReviewDate: "2024-3-17",
+    Content: "It exceeded my expectations in every possible way.",
+    Rating: 4
+  },
+  {
+    MovieId: 9876,
+    ReviewerName: "Cindy Brian",
+    ReviewDate: "2024-3-18",
+    Content: "Two stars for actor.",
+    Rating: 2
+  },
+  {
+    MovieId: 5674,
+    ReviewerName: "Jack Ma",
+    ReviewDate: "2024-3-19",
+    Content: "The soundtrack complemented the film beautifully.",
+    Rating: 5
+  },
+  {
+    MovieId: 1278,
+    ReviewerName: "Leon Hu",
+    ReviewDate: "2024-3-20",
+    Content: "A thrilling adventure that keeps you on the edge of your seat.",
+    Rating: 4
+  },
+  {
+    MovieId: 6734,
+    ReviewerName: "Mary Li",
+    ReviewDate: "2024-3-21",
+    Content: "The cinematography was breathtaking.",
+    Rating: 5
+  },
+  {
+    MovieId: 7864,
+    ReviewerName: "Sky Chen",
+    ReviewDate: "2024-3-22",
+    Content: "Just so so.",
+    Rating: 3
+  }
 ];

@@ -1,4 +1,5 @@
 // export type Language = 'English' | 'Frenc
+//数据格式定义
 
 export type Movie =   {
   id: number,
@@ -28,6 +29,14 @@ export type MovieCastMemberQueryParams = {
   movieId: string;
   actorName?: string;
   roleName?: string
+};
+//新建movieReview数据库
+export type MovieReview = {
+  MovieId: number;
+  ReviewerName: string;
+  ReviewDate: string;
+  Content: string;
+  Rating: number; 
 }
 
  

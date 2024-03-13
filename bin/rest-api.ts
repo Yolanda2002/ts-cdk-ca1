@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// 文件用于cdk部署服务
 import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
 import { RestAPIStack } from "../lib/rest-api-stack";
