@@ -7,7 +7,7 @@ import * as custom from "aws-cdk-lib/custom-resources";
 import { Construct } from "constructs";
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { generateBatch } from "../shared/util";
-import { movies, movieCasts } from "../seed/movies";
+import { movies, movieCasts, movieReviews } from "../seed/movies";
 import * as apig from "aws-cdk-lib/aws-apigateway";
 
 //定义cdk类来创建api
@@ -93,13 +93,14 @@ export class RestAPIStack extends cdk.Stack {
         parameters: {
           RequestItems: {
             [moviesTable.tableName]: generateBatch(movies),
-            [movieCastsTable.tableName]: generateBatch(movieCasts),  // Added
+            [movieCastsTable.tableName]: generateBatch(movieCasts), 
+            [movieCastsTable.tableName]: generateBatch(movieReviews) // Added
           },
         },
         physicalResourceId: custom.PhysicalResourceId.of("moviesddbInitData"), //.of(Date.now().toString()),
       },
       policy: custom.AwsCustomResourcePolicy.fromSdkCalls({
-        resources: [moviesTable.tableArn, movieCastsTable.tableArn],  // Includes movie cast
+        resources: [moviesTable.tableArn, movieCastsTable.tableArn, movieReviewsTable.tableArn],  // Includes movie cast and movie reviews
       }),
     });
 
