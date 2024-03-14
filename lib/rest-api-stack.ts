@@ -93,7 +93,7 @@ export class RestAPIStack extends cdk.Stack {
         parameters: {
           RequestItems: {
             [moviesTable.tableName]: generateBatch(movies),
-            [movieCastsTable.tableName]: generateBatch(movieCasts), 
+            [movieCastsTable.tableName]: generateBatch(movieCasts),
             [movieCastsTable.tableName]: generateBatch(movieReviews) // Added
           },
         },
@@ -147,8 +147,8 @@ export class RestAPIStack extends cdk.Stack {
     //API作业1方法
     const addMovieReviewFn = new lambdanode.NodejsFunction(this, "AddMovieReviewFn", {
       architecture: lambda.Architecture.ARM_64,
-      runtime: lambda.Runtime.NODEJS_16_X, 
-      entry: `${__dirname}/../lambdas/addMovieReview.ts`, 
+      runtime: lambda.Runtime.NODEJS_16_X,
+      entry: `${__dirname}/../lambdas/addMovieReview.ts`,
       timeout: cdk.Duration.seconds(10),
       memorySize: 128,
       environment: {
@@ -160,10 +160,19 @@ export class RestAPIStack extends cdk.Stack {
     const getMovieReviewsFn = new lambdanode.NodejsFunction(this, "GetMovieReviewsFn", {
       architecture: lambda.Architecture.ARM_64,
       runtime: lambda.Runtime.NODEJS_18_X,
-      entry: `${__dirname}/../lambdas/getAllMovieReviews.ts`, 
+      entry: `${__dirname}/../lambdas/getAllMovieReviews.ts`,
       environment: {
-        TABLE_NAME: movieReviewsTable.tableName, 
+        TABLE_NAME: movieReviewsTable.tableName,
         REGION: "eu-west-1", // 请根据需要更改 AWS 区域
+      },
+    });
+
+    const getMovieReviewsByMovieIdFn = new lambdanode.NodejsFunction(this, "GetMovieReviewsByMovieIdFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/getMovieReviewsByMovieId.ts`, // 确保路径正确
+      environment: {
+        MOVIE_REVIEWS_TABLE: movieReviewsTable.tableName,
       },
     });
 
@@ -176,6 +185,7 @@ export class RestAPIStack extends cdk.Stack {
     movieCastsTable.grantReadData(getMovieByIdFn)
     movieReviewsTable.grantWriteData(addMovieReviewFn);
     movieReviewsTable.grantReadData(getMovieReviewsFn);
+    movieReviewsTable.grantReadData(getMovieReviewsByMovieIdFn);
 
     // REST API 添加API
     const api = new apig.RestApi(this, "RestAPI", {
@@ -231,9 +241,14 @@ export class RestAPIStack extends cdk.Stack {
     );
 
     reviewsEndpoint.addMethod(
-      "GET", 
+      "GET",
       new apig.LambdaIntegration(getMovieReviewsFn, { proxy: true }));
 
+    // /movies/{movieId}/reviews
+    const movieReviewsSubEndpoint = movieEndpoint.addResource("reviews");
+    movieReviewsSubEndpoint.addMethod(
+      "GET",
+      new apig.LambdaIntegration(getMovieReviewsByMovieIdFn, { proxy: true }));
 
   }
 }
