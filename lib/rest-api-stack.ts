@@ -163,16 +163,27 @@ export class RestAPIStack extends cdk.Stack {
       entry: `${__dirname}/../lambdas/getAllMovieReviews.ts`,
       environment: {
         TABLE_NAME: movieReviewsTable.tableName,
-        REGION: "eu-west-1", // 请根据需要更改 AWS 区域
+        REGION: "eu-west-1",
       },
     });
 
     const getMovieReviewsByMovieIdFn = new lambdanode.NodejsFunction(this, "GetMovieReviewsByMovieIdFn", {
       architecture: lambda.Architecture.ARM_64,
       runtime: lambda.Runtime.NODEJS_18_X,
-      entry: `${__dirname}/../lambdas/getMovieReviewsByMovieId.ts`, // 确保路径正确
+      entry: `${__dirname}/../lambdas/getMovieReviewsByMovieId.ts`,
       environment: {
         MOVIE_REVIEWS_TABLE: movieReviewsTable.tableName,
+        REGION: "eu-west-1",
+      },
+    });
+
+    const getMovieReviewsByMovieIdAndMinRatingFn = new lambdanode.NodejsFunction(this, "GetMovieReviewsByMovieIdAndMinRatingFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/getMovieReviewsByMovieIdAndMinRating.ts`,
+      environment: {
+        MOVIE_REVIEWS_TABLE: movieReviewsTable.tableName,
+        REGION: "eu-west-1",
       },
     });
 
@@ -186,6 +197,7 @@ export class RestAPIStack extends cdk.Stack {
     movieReviewsTable.grantWriteData(addMovieReviewFn);
     movieReviewsTable.grantReadData(getMovieReviewsFn);
     movieReviewsTable.grantReadData(getMovieReviewsByMovieIdFn);
+    movieReviewsTable.grantReadData(getMovieReviewsByMovieIdAndMinRatingFn);
 
     // REST API 添加API
     const api = new apig.RestApi(this, "RestAPI", {
@@ -245,10 +257,12 @@ export class RestAPIStack extends cdk.Stack {
       new apig.LambdaIntegration(getMovieReviewsFn, { proxy: true }));
 
     // /movies/{movieId}/reviews
+    // /movies/{movieId}/reviews?minRating=n
     const movieReviewsSubEndpoint = movieEndpoint.addResource("reviews");
     movieReviewsSubEndpoint.addMethod(
       "GET",
       new apig.LambdaIntegration(getMovieReviewsByMovieIdFn, { proxy: true }));
+
 
   }
 }
