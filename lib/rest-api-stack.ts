@@ -156,6 +156,16 @@ export class RestAPIStack extends cdk.Stack {
       },
     });
 
+    const getMovieReviewsFn = new lambdanode.NodejsFunction(this, "GetMovieReviewsFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/getAllMovieReviews.ts`, 
+      environment: {
+        TABLE_NAME: movieReviewsTable.tableName, 
+        REGION: "eu-west-1", // 请根据需要更改 AWS 区域
+      },
+    });
+
     // Permissions 
     moviesTable.grantReadData(getMovieByIdFn)
     moviesTable.grantReadData(getAllMoviesFn)
@@ -164,6 +174,7 @@ export class RestAPIStack extends cdk.Stack {
     movieCastsTable.grantReadData(getMovieCastMembersFn);
     movieCastsTable.grantReadData(getMovieByIdFn)
     movieReviewsTable.grantWriteData(addMovieReviewFn);
+    movieReviewsTable.grantReadData(getMovieReviewsFn);
 
     // REST API 添加API
     const api = new apig.RestApi(this, "RestAPI", {
@@ -217,6 +228,10 @@ export class RestAPIStack extends cdk.Stack {
       "POST",
       new apig.LambdaIntegration(addMovieReviewFn, { proxy: true })
     );
+
+    reviewsEndpoint.addMethod(
+      "GET", 
+      new apig.LambdaIntegration(getMovieReviewsFn, { proxy: true }));
 
 
   }
