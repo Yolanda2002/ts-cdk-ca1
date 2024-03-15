@@ -54,7 +54,7 @@ export class RestAPIStack extends cdk.Stack {
       indexName: 'ReviewerNameIndex', // 给新索引一个唯一的名称
       partitionKey: { name: 'MovieId', type: dynamodb.AttributeType.NUMBER },
       sortKey: { name: 'ReviewerName', type: dynamodb.AttributeType.STRING },
-      projectionType: dynamodb.ProjectionType.ALL, 
+      projectionType: dynamodb.ProjectionType.ALL,
     });
 
 
@@ -203,6 +203,17 @@ export class RestAPIStack extends cdk.Stack {
       },
     });
 
+    const updateMovieReviewFn = new lambdanode.NodejsFunction(this, "UpdateMovieReviewFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: '${__dirname}/../lambdas/updateMovieReview.ts',
+      environment: {
+        MOVIE_REVIEWS_TABLE: movieReviewsTable.tableName,
+        REGION: "eu-west-1",
+      },
+    });
+
+
     // Permissions 
     moviesTable.grantReadData(getMovieByIdFn)
     moviesTable.grantReadData(getAllMoviesFn)
@@ -215,6 +226,7 @@ export class RestAPIStack extends cdk.Stack {
     movieReviewsTable.grantReadData(getMovieReviewsByMovieIdFn);
     movieReviewsTable.grantReadData(getMovieReviewsByMovieIdAndMinRatingFn);
     movieReviewsTable.grantReadData(getMovieReviewByReviewerFn);
+    movieReviewsTable.grantReadWriteData(updateMovieReviewFn);
 
     // REST API 添加API
     const api = new apig.RestApi(this, "RestAPI", {
@@ -280,12 +292,16 @@ export class RestAPIStack extends cdk.Stack {
       "GET",
       new apig.LambdaIntegration(getMovieReviewsByMovieIdFn, { proxy: true }));
 
-      // /movies/{movieId}/reviews/{reviewerName}
-      const reviewByReviewerEndpoint = movieReviewsSubEndpoint.addResource('{reviewerName}');
-      reviewByReviewerEndpoint.addMethod(
-        'GET', 
-        new apig.LambdaIntegration(getMovieReviewByReviewerFn, { proxy: true })
-      );
+    // /movies/{movieId}/reviews/{reviewerName}
+    const reviewByReviewerEndpoint = movieReviewsSubEndpoint.addResource('{reviewerName}');
+    reviewByReviewerEndpoint.addMethod(
+      'GET',
+      new apig.LambdaIntegration(getMovieReviewByReviewerFn, { proxy: true })
+    );
+    reviewByReviewerEndpoint.addMethod(
+      "PUT",
+      new apig.LambdaIntegration(updateMovieReviewFn)
+    );
 
 
 
