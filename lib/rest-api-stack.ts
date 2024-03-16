@@ -58,6 +58,12 @@ export class RestAPIStack extends cdk.Stack {
       projectionType: dynamodb.ProjectionType.ALL, // 选择 INCLUDE 如果不需要所有的属性
     });
 
+    movieReviewsTable.addGlobalSecondaryIndex({
+      indexName: 'OnlyReviewerNameIndex', 
+      partitionKey: { name: 'ReviewerName', type: dynamodb.AttributeType.STRING }, // 使用 ReviewerName 作为 GSI 的分区键
+      projectionType: dynamodb.ProjectionType.ALL, 
+    });
+
 
     // Functions 
     const getMovieByIdFn = new lambdanode.NodejsFunction(
@@ -207,13 +213,32 @@ export class RestAPIStack extends cdk.Stack {
     const updateMovieReviewFn = new lambdanode.NodejsFunction(this, "UpdateMovieReviewFn", {
       architecture: lambda.Architecture.ARM_64,
       runtime: lambda.Runtime.NODEJS_18_X,
-      entry: '${__dirname}/../lambdas/updateMovieReview.ts',
+      entry: `${__dirname}/../lambdas/updateMovieReview.ts`,
       environment: {
         MOVIE_REVIEWS_TABLE: movieReviewsTable.tableName,
         REGION: "eu-west-1",
       },
     });
 
+    const getReviewsByReviewerFn = new lambdanode.NodejsFunction(this, "GetReviewsByReviewerFunction", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/getReviewsByReviewer.ts`,
+      environment: {
+        MOVIE_REVIEWS_TABLE: movieReviewsTable.tableName,
+        REGION: "eu-west-1",
+      },
+    });
+
+    const addReviewByReviewerFn = new lambdanode.NodejsFunction(this, "AddReviewByReviewerFunction", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/addReviewByReviewer.ts`,
+      environment: {
+        MOVIE_REVIEWS_TABLE: movieReviewsTable.tableName,
+        REGION: "eu-west-1",
+      },
+    });
 
     // Permissions 
     moviesTable.grantReadData(getMovieByIdFn)
@@ -228,6 +253,9 @@ export class RestAPIStack extends cdk.Stack {
     movieReviewsTable.grantReadData(getMovieReviewsByMovieIdAndMinRatingFn);
     movieReviewsTable.grantReadData(getMovieReviewByReviewerFn);
     movieReviewsTable.grantReadWriteData(updateMovieReviewFn);
+    movieReviewsTable.grantReadData(getReviewsByReviewerFn);
+    movieReviewsTable.grantWriteData(addReviewByReviewerFn);
+
 
     // REST API 添加API
     const api = new apig.RestApi(this, "RestAPI", {
@@ -304,6 +332,16 @@ export class RestAPIStack extends cdk.Stack {
       new apig.LambdaIntegration(updateMovieReviewFn)
     );
 
+    // /reviews/{reviewerName}
+    const reviewsByReviewerEndpoint = api.root.addResource('reviews').addResource('{reviewerName}');
+    reviewsByReviewerEndpoint.addMethod(
+      'GET',
+      new apig.LambdaIntegration(getReviewsByReviewerFn, { proxy: true })
+    );
+    reviewsByReviewerEndpoint.addMethod(
+      'POST', 
+      new apig.LambdaIntegration(addReviewByReviewerFn, { proxy: true })
+    );
 
 
   }
