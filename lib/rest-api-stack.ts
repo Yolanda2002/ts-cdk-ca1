@@ -44,17 +44,18 @@ export class RestAPIStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       tableName: 'MovieReviews',
     });
-    //表的二级属性：这里是按ReviewDate查询
-    // movieReviewsTable.addGlobalSecondaryIndex({
-    //   indexName: 'ReviewDateIndex',
-    //   partitionKey: { name: 'ReviewDate', type: dynamodb.AttributeType.STRING },
-    //   projectionType: dynamodb.ProjectionType.ALL, // 索引的属性
-    // });
+
     movieReviewsTable.addGlobalSecondaryIndex({
       indexName: 'ReviewerNameIndex', // 给新索引一个唯一的名称
       partitionKey: { name: 'MovieId', type: dynamodb.AttributeType.NUMBER },
       sortKey: { name: 'ReviewerName', type: dynamodb.AttributeType.STRING },
       projectionType: dynamodb.ProjectionType.ALL,
+    });
+    movieReviewsTable.addGlobalSecondaryIndex({
+      indexName: 'ReviewDateIndex', // 新索引的名称
+      partitionKey: { name: 'MovieId', type: dynamodb.AttributeType.NUMBER },
+      sortKey: { name: 'ReviewDate', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL, // 选择 INCLUDE 如果不需要所有的属性
     });
 
 
