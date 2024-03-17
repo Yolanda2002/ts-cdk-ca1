@@ -1,4 +1,4 @@
-## Typescript—CDK—Assignment1
+# Typescript—CDK—Assignment1
 
 **Name:** Jia Yang
 
@@ -8,7 +8,7 @@ This repository contains an implementation of a serverless REST API for the AWS 
 
 
 
-### API endpoints.
+## API endpoints.
 
 My Web API supports the following endpoints:
 
@@ -16,7 +16,6 @@ My Web API supports the following endpoints:
 
   ![1](https://github.com/Yolanda2002/ts-cdk-ca1/blob/main/pic/1.png)
   
-
 - GET /movies/reviews - Get all the movie reviews.（I Added.）
 
   ![](https://github.com/Yolanda2002/ts-cdk-ca1/blob/main/pic/2.png)
@@ -59,7 +58,7 @@ My Web API supports the following endpoints:
 
 
 
-### Independent learning (If relevant).
+## Independent learning (If relevant).
 
 An important area of independent learning during the development of this project was the integration of the Amazon Translate service to enable the functionality for users to get translated versions of movie reviews. This requires an in-depth understanding of the AWS SDK for JavaScript in Node.js, specifically regarding the use of the Translate service. Understanding the proper configuration and setup of the AWS Translate client, handling request and response objects, and ensuring effective error handling are all part of the learning process.
 
