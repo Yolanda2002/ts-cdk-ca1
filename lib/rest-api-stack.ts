@@ -9,6 +9,7 @@ import { Construct } from "constructs";
 import { generateBatch } from "../shared/util";
 import { movies, movieCasts, movieReviews } from "../seed/movies";
 import * as apig from "aws-cdk-lib/aws-apigateway";
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 //定义cdk类来创建api
 export class RestAPIStack extends cdk.Stack {
@@ -59,9 +60,9 @@ export class RestAPIStack extends cdk.Stack {
     });
 
     movieReviewsTable.addGlobalSecondaryIndex({
-      indexName: 'OnlyReviewerNameIndex', 
+      indexName: 'OnlyReviewerNameIndex',
       partitionKey: { name: 'ReviewerName', type: dynamodb.AttributeType.STRING }, // 使用 ReviewerName 作为 GSI 的分区键
-      projectionType: dynamodb.ProjectionType.ALL, 
+      projectionType: dynamodb.ProjectionType.ALL,
     });
 
 
@@ -240,6 +241,33 @@ export class RestAPIStack extends cdk.Stack {
       },
     });
 
+    const getReviewByIdAndReviewerFn = new lambdanode.NodejsFunction(this, "GetReviewByIdAndReviewerFn", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/getReviewByIdAndReviewer.ts`,
+      environment: {
+        MOVIE_REVIEWS_TABLE: movieReviewsTable.tableName,
+        REGION: "eu-west-1",
+      },
+    });
+
+
+    const translateFn = new lambdanode.NodejsFunction(this, "Translate", {
+      architecture: lambda.Architecture.ARM_64,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: `${__dirname}/../lambdas/translate.ts`,
+      environment: {
+        MOVIE_REVIEWS_TABLE: movieReviewsTable.tableName,
+        REGION: "eu-west-1",
+      },
+    });
+
+    const translatePolicy = new iam.PolicyStatement({
+      actions: ["translate:TranslateText"],
+      resources: ["*"],
+    });
+    translateFn.addToRolePolicy(translatePolicy);
+
     // Permissions 
     moviesTable.grantReadData(getMovieByIdFn)
     moviesTable.grantReadData(getAllMoviesFn)
@@ -340,10 +368,16 @@ export class RestAPIStack extends cdk.Stack {
       new apig.LambdaIntegration(getReviewsByReviewerFn, { proxy: true })
     );
     reviewsByReviewerEndpoint.addMethod(
-      'POST', 
+      'POST',
       new apig.LambdaIntegration(addReviewByReviewerFn, { proxy: true })
     );
 
+
+    const reviewByIdAndReviewer = reviewsByReviewerEndpoint.addResource('{movieId}');
+    reviewByIdAndReviewer.addMethod('GET', new apig.LambdaIntegration(getReviewByIdAndReviewerFn));
+
+    const translateReview = reviewByIdAndReviewer.addResource('translation');
+    translateReview.addMethod('GET', new apig.LambdaIntegration(translateFn));
 
   }
 }
